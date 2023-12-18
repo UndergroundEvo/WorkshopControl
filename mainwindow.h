@@ -10,7 +10,9 @@
 #include <QString>
 #include <QListWidget>
 #include <QFile>
-
+#include <QPixmap>
+#include <QGraphicsView>
+#include <QFileDialog>
 
 #include <QtSql/QSql>
 #include <QtSql/QSqlQuery>
@@ -58,10 +60,12 @@ private slots:
     void on_pushButton_2_clicked();
     void showTime();
     void SetToEdit();
-    void on_pushButton_4_clicked();
+    //void on_pushButton_4_clicked();
     void on_pushButton_3_clicked();
     void on_action_triggered();
     void on_action_2_triggered();
     void on_tableView_clicked(const QModelIndex &index);
+    void on_pushButton_4_clicked();
+    void on_pushButton_7_clicked();
 };
 #endif // MAINWINDOW_H

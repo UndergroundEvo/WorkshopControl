@@ -69,8 +69,14 @@ void MainWindow::SetToEdit(){
         ui->plainTextEdit_2->setPlainText(modelTasks->record(selectedRow).value("Info").toString());
         ui->lineEdit_4->setText(modelTasks->record(selectedRow).value("Price").toString());
 
-        qDebug() << "worker= "<< modelTasks->record(selectedRow).value("WorkerKey").toInt();
-        ui->comboBox->setCurrentText(GetWorker(modelTasks->record(selectedRow).value("WorkerKey").toInt()-1));
+        //qDebug() << "worker= "<< modelTasks->record(selectedRow).value("WorkerKey").toInt();
+        if (modelTasks->record(selectedRow).value("WorkerKey").toInt()!=0)
+            ui->comboBox->setCurrentText(GetWorker(modelTasks->record(selectedRow).value("WorkerKey").toInt()-1));
+        else ui->comboBox->setCurrentText(" ");
+
+
+        QPixmap img = (QString(":images/imgs/")+modelTasks->record(selectedRow).value("IMG").toString());
+        ui->label_11->setPixmap(img);
     }
 }
 QString MainWindow::GetWorker(int i){
@@ -144,5 +150,26 @@ void MainWindow::on_action_2_triggered(){
 
 void MainWindow::on_tableView_clicked(const QModelIndex &index){
     SetToEdit();
+}
+
+
+void MainWindow::on_pushButton_4_clicked(){
+    QFileDialog dialog(this, "Выберите изображение");
+    QString filename;
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    dialog.setNameFilter(tr("Изображения (*.png *.xpm *.jpg)"));
+
+    if (dialog.exec()) {
+        filename = dialog.selectedFiles().first();
+        QPixmap pixmap(filename);
+        ui->label_11->setPixmap(pixmap);
+    }
+    qDebug() <<"filename= "<< filename;
+    modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").setValue(filename);
+}
+
+
+void MainWindow::on_pushButton_7_clicked(){
+    modelTasks->submitAll()
 }
 
