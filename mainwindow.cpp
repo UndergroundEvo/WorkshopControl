@@ -15,6 +15,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     loadWorkers();
     loadTasks_active();
     loadTasks();
+    //modelTasks->setEditStrategy(QSqlTableModel::OnFieldChange);
 
     int i = modelWorkers->rowCount();
     while(i--){
@@ -45,9 +46,9 @@ void MainWindow::SetToEdit(){
     }
     else {
         ui->lineEdit->setText(modelTasks->record(selectedRow).value("Name").toString());
-        QDateTime start_date, end_date;
+        //QDateTime start_date, end_date;
         //start_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateBegin").toInt());
-
+        /*
         if (!modelTasks->record(selectedRow).value("DateEnd").isNull()){
             start_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateBegin").toInt());
             ui->lineEdit_2->setText(start_date.toString("hh:mm dd-MM-yyyy"));
@@ -58,7 +59,10 @@ void MainWindow::SetToEdit(){
             end_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateEnd").toInt());
             ui->lineEdit_3->setText(end_date.toString("hh:mm dd-MM-yyyy"));
         }
-        else ui->lineEdit_3->setText(" ");
+        else ui->lineEdit_3->setText(" ");*/
+
+        ui->lineEdit_2->setText(modelTasks->record(selectedRow).value("DateBegin").toString());
+        ui->lineEdit_3->setText(modelTasks->record(selectedRow).value("DateEnd").toString());
 
         //qDebug() << "comp= "<<modelTasks->record(selectedRow).value("Comp").toString();
 
@@ -75,15 +79,15 @@ void MainWindow::SetToEdit(){
         else ui->comboBox->setCurrentText(" ");
 
 
-        QPixmap img = (QString(":images/imgs/")+modelTasks->record(selectedRow).value("IMG").toString());
+        //QPixmap img = (QString(":images/imgs/")+modelTasks->record(selectedRow).value("IMG").toString());
+        QPixmap img = (modelTasks->record(selectedRow).value("IMG").toString());
+
         ui->label_11->setPixmap(img);
     }
 }
 QString MainWindow::GetWorker(int i){
     return modelWorkers->record(i).value("Name").toString();
 }
-
-
 
 void MainWindow::loadWorkers(){
     //QSqlTableModel *modelWorkers;
@@ -126,7 +130,6 @@ void MainWindow::on_pushButton_2_clicked(){
 }
 
 void MainWindow::on_pushButton_clicked(){
-    //task.show();
     qDebug() << "Вставка строки" ;
     modelTasks->insertRows(modelTasks->rowCount(),1);
 }
@@ -141,7 +144,11 @@ void MainWindow::on_pushButton_3_clicked(){
 
 
 void MainWindow::on_action_triggered(){
+    loadWorkers();
+    loadTasks_active();
+    loadTasks();
     modelTasks->select();
+
 }
 
 void MainWindow::on_action_2_triggered(){
@@ -152,24 +159,54 @@ void MainWindow::on_tableView_clicked(const QModelIndex &index){
     SetToEdit();
 }
 
-
+    QString filename;
 void MainWindow::on_pushButton_4_clicked(){
     QFileDialog dialog(this, "Выберите изображение");
-    QString filename;
     dialog.setFileMode(QFileDialog::ExistingFile);
-    dialog.setNameFilter(tr("Изображения (*.png *.xpm *.jpg)"));
-
+    dialog.setNameFilter(tr("Изображения (*.png *.jpg)"));
     if (dialog.exec()) {
         filename = dialog.selectedFiles().first();
         QPixmap pixmap(filename);
         ui->label_11->setPixmap(pixmap);
     }
     qDebug() <<"filename= "<< filename;
-    modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").setValue(filename);
+    modelTasks->record(ui->tableView->currentIndex().row()).setValue("IMG",filename);
+    modelTasks->submitAll();
 }
 
 
 void MainWindow::on_pushButton_7_clicked(){
-    modelTasks->submitAll()
+    qDebug() <<"cur ROW= "<< ui->tableView->currentIndex().row();
+    qDebug() <<"else= "<< ui->lineEdit->text();
+    //modelTasks->record(ui->tableView->currentIndex().row()).value("Name").setValue(ui->lineEdit->text());
+
+    QSqlRecord rec = modelTasks->record(ui->tableView->currentIndex().row());
+
+    QDateTime dateTime = QDateTime::fromString(ui->lineEdit_2->text(), "hh:mm dd-MM-yyyy");
+    if(dateTime.isValid()) rec.setValue("DateBegin",ui->lineEdit_2->text());
+    else {
+        QMessageBox::information(this, "Ошибка", "Неправильный формат Времени заявки [hh:mm dd-MM-yyyy] \nБудет вставлено сегодня");
+        rec.setValue("DateBegin",QDateTime::currentDateTime().toString("hh:mm dd-MM-yyyy"));
+    }
+    QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy");
+    if(dateTime.isValid()) rec.setValue("DateBegin",ui->lineEdit_3->text());
+    else {
+        QMessageBox::information(this, "Ошибка", "Неправильный формат Срок сдачи [hh:mm dd-MM-yyyy] \nБудет вставлено завтра");
+        QDateTime chk = QDateTime::currentDateTime().addDays(1);
+        rec.setValue("DateEnd",chk.toString("hh:mm dd-MM-yyyy"));
+    }
+    if (ui->checkBox->isChecked()) rec.setValue("Comp","1");
+    else rec.setValue("Comp","0");
+
+    //qDebug() <<"pixmap= "<< modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").toString();
+
+    rec.setValue("Name",ui->lineEdit->text());
+    if (!filename.isNull()) //rec.setValue("IMG",modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").toString());
+    rec.setValue("IMG",filename);
+    //rec.setValue("DateBegin",timestamp);
+    modelTasks->setRecord(ui->tableView->currentIndex().row(),rec);
+    if (!modelTasks->submitAll()) {
+        qDebug() << modelTasks->lastError().text();
+    }
 }
 
