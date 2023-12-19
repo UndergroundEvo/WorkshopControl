@@ -49,6 +49,7 @@ public:
 
     void loadTasks();
     void loadWorkers();
+    void UpdateWorkers();
     void loadTasks_active();
     QString GetWorker(int i);
 
@@ -67,5 +68,7 @@ private slots:
     void on_tableView_clicked(const QModelIndex &index);
     void on_pushButton_4_clicked();
     void on_pushButton_7_clicked();
+    void on_pushButton_6_clicked();
+    void on_action_3_triggered();
 };
 #endif // MAINWINDOW_H

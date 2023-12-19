@@ -12,17 +12,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()),this,SLOT(showTime()));
     timer->start();
-    loadWorkers();
-    loadTasks_active();
-    loadTasks();
+    on_action_triggered();
     //modelTasks->setEditStrategy(QSqlTableModel::OnFieldChange);
 
+
+}
+
+void MainWindow::UpdateWorkers(){
     int i = modelWorkers->rowCount();
+    ui->comboBox->clear();
     while(i--){
         ui->comboBox->addItem(modelWorkers->record(i).value("Name").toString());
     }
 }
-
 MainWindow::~MainWindow(){
     delete ui;
 }
@@ -105,10 +107,20 @@ void MainWindow::loadTasks(){
 void MainWindow::loadTasks_active(){
     modelTasks = new QSqlTableModel(this, sqllite3);
     modelTasks->setTable("Tasks");
+    qDebug() << "check today: " << QString("DateEnd LIKE '%" + QDate::currentDate().toString("dd-MM-yyyy") + "%'");
+    //modelTasks->setFilter(QString("DateEnd= ")+QDateTime::currentDateTime().toString("hh:mm dd-MM-yyyy"));
+
+    modelTasks->setFilter(QString("DateEnd LIKE '%" + QDate::currentDate().toString("dd-MM-yyyy") + "%'"));
+    modelTasks->select();
+
+    int dsd = modelTasks->rowCount();
+    ui->label_14->setText(QString::number(dsd));
+
     modelTasks->setFilter("Comp= 0");
     modelTasks->select();
     int ids = modelTasks->rowCount();
     ui->label_10->setText(QString::number(ids));
+
     ui->tableView_3->setModel(modelTasks);
 }
 void MainWindow::showTime(){
@@ -117,17 +129,7 @@ void MainWindow::showTime(){
 }
 
 
-void MainWindow::on_pushButton_2_clicked(){
-    if (!query.exec("SELECT * FROM Workers")){
-        qDebug() << query.lastError().databaseText();
-        qDebug() << query.lastError().driverText();
-    }
-    else {
-        while(query.next()){
-            qDebug() << query.record();
-        }
-    }
-}
+
 
 void MainWindow::on_pushButton_clicked(){
     qDebug() << "Вставка строки" ;
@@ -147,8 +149,8 @@ void MainWindow::on_action_triggered(){
     loadWorkers();
     loadTasks_active();
     loadTasks();
+    UpdateWorkers();
     modelTasks->select();
-
 }
 
 void MainWindow::on_action_2_triggered(){
@@ -171,7 +173,14 @@ void MainWindow::on_pushButton_4_clicked(){
     }
     qDebug() <<"filename= "<< filename;
     modelTasks->record(ui->tableView->currentIndex().row()).setValue("IMG",filename);
-    modelTasks->submitAll();
+
+    QSqlRecord rec = modelTasks->record(ui->tableView->currentIndex().row());
+    rec.setValue("IMG",filename);
+    modelTasks->setRecord(ui->tableView->currentIndex().row(),rec);
+
+    if (!modelTasks->submitAll()) {
+        qDebug() << modelTasks->lastError().text();
+    }
 }
 
 
@@ -195,18 +204,58 @@ void MainWindow::on_pushButton_7_clicked(){
         QDateTime chk = QDateTime::currentDateTime().addDays(1);
         rec.setValue("DateEnd",chk.toString("hh:mm dd-MM-yyyy"));
     }
+    if (QDateTime::fromString(ui->lineEdit_2->text(),"hh:mm dd-MM-yyyy")>QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy")){
+        QMessageBox::information(this, "Ошибка", "Дата сдачи стоит раньше даты времени заявки");
+        QVariant ds = ui->lineEdit_2->text(); //begin
+        QVariant dfs = ui->lineEdit_3->text(); //endf
+        rec.setValue("DateBegin",dfs);
+        rec.setValue("DateEnd",ds);
+    }
+
     if (ui->checkBox->isChecked()) rec.setValue("Comp","1");
     else rec.setValue("Comp","0");
 
     //qDebug() <<"pixmap= "<< modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").toString();
 
     rec.setValue("Name",ui->lineEdit->text());
-    if (!filename.isNull()) //rec.setValue("IMG",modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").toString());
-    rec.setValue("IMG",filename);
-    //rec.setValue("DateBegin",timestamp);
+    rec.setValue("Info",ui->plainTextEdit_2->toPlainText());
+    rec.setValue("Сontacts",ui->plainTextEdit->toPlainText());
+
     modelTasks->setRecord(ui->tableView->currentIndex().row(),rec);
     if (!modelTasks->submitAll()) {
         qDebug() << modelTasks->lastError().text();
+    }
+}
+
+
+void MainWindow::on_pushButton_6_clicked(){
+    qDebug() << "Вставка строки" ;
+    modelWorkers->insertRows(modelWorkers->rowCount(),1);
+}
+void MainWindow::on_pushButton_2_clicked(){
+    /*if (!query.exec("SELECT * FROM Workers")){
+        qDebug() << query.lastError().databaseText();
+        qDebug() << query.lastError().driverText();
+    }
+    else {
+        while(query.next()){
+            qDebug() << query.record();
+        }
+    }*/
+    int selectedRow = ui->tableView_2->currentIndex().row();
+    if (selectedRow >= 0){
+        qDebug() << "удал. строку" << modelWorkers->removeRows(selectedRow,1);
+    }
+    else qDebug() << "нет выделенной строки";
+}
+
+void MainWindow::on_action_3_triggered(){
+    QFileDialog dialog(this, "Выберите путь до базы");
+    dialog.setFileMode(QFileDialog::ExistingFile);
+    dialog.setNameFilter(tr("База (*.sqlite)"));
+    if (dialog.exec()) {
+        QString f2ilename = dialog.selectedFiles().first();
+        sqllite3.setDatabaseName(f2ilename);
     }
 }
 
