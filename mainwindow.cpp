@@ -10,6 +10,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     if (!sqllite3.open()) QMessageBox::information(this, "База", "База не подключилась");
     else QMessageBox::information(this, "База", "База работает");
 
+    modelTasks = new QSqlTableModel(this, sqllite3);
+    modelTasks->setTable("Tasks");
+    modelTasks->setEditStrategy(QSqlTableModel::OnFieldChange);
+    modelWorkers = new QSqlTableModel(this, sqllite3);
+    modelWorkers->setTable("Workers");
+
     QDate dateToday = QDate::currentDate();
     ui->label->setText(dateToday.toString("dd MMMM yyyy"));
     QTimer *timer = new QTimer(this);
@@ -46,6 +52,9 @@ void MainWindow::SetToEdit(){
     modelTasks->setTable("Tasks");
     modelTasks->select();*/
     //int selectedRow = ui->tableView->currentIndex().row();
+
+    //on_pushButton_8_clicked();
+    //on_pushButton_9_clicked();
 
     int selectedRow = ui->tableView->currentIndex().row();
     qDebug() << selectedRow;
@@ -111,14 +120,14 @@ QString MainWindow::GetWorker(QString string){
 
 void MainWindow::loadWorkers(){
     //QSqlTableModel *modelWorkers;
-    modelWorkers = new QSqlTableModel(this, sqllite3);
-    modelWorkers->setTable("Workers");
+    // modelWorkers = new QSqlTableModel(this, sqllite3);
+    // modelWorkers->setTable("Workers");
     modelWorkers->select();
     ui->tableView_2->setModel(modelWorkers);
 }
 void MainWindow::loadTasks(){
-    modelTasks = new QSqlTableModel(this, sqllite3);
-    modelTasks->setTable("Tasks");
+    // modelTasks = new QSqlTableModel(this, sqllite3);
+    // modelTasks->setTable("Tasks");
     modelTasks->select();
     ui->tableView->setModel(modelTasks);
 }
@@ -158,25 +167,13 @@ void MainWindow::on_pushButton_3_clicked(){
     else qDebug() << "нет выделенной строки";
 }
 void MainWindow::on_action_triggered(){
-
     loadWorkers();
     modelWorkers->setHeaderData(1, Qt::Horizontal, "id Мастера");
     modelWorkers->setHeaderData(2, Qt::Horizontal, "ФИО");
+    //ui->tableView_2->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
 
-    loadTasks_active();
-    modelTasks->setHeaderData(1, Qt::Horizontal, "Выполнение");
-    modelTasks->setHeaderData(2, Qt::Horizontal, "Название");
-    modelTasks->setHeaderData(3, Qt::Horizontal, "Дата заявки");
-    modelTasks->setHeaderData(4, Qt::Horizontal, "Срок");
-    modelTasks->setHeaderData(5, Qt::Horizontal, "Картинка");
-    modelTasks->setHeaderData(6, Qt::Horizontal, "Цена");
-    modelTasks->setHeaderData(7, Qt::Horizontal, "Инфо");
-    modelTasks->setHeaderData(8, Qt::Horizontal, "id Мастера");
-    modelTasks->setHeaderData(9, Qt::Horizontal, "Контакты");
 
-    ui->tableView_3->hideColumn(0);
-    ui->tableView_3->hideColumn(1);
-
+    modelTasks->setFilter("");
     loadTasks();
     modelTasks->setHeaderData(1, Qt::Horizontal, "Выполнение");
     modelTasks->setHeaderData(2, Qt::Horizontal, "Название");
@@ -189,8 +186,29 @@ void MainWindow::on_action_triggered(){
     modelTasks->setHeaderData(9, Qt::Horizontal, "Контакты");
     ui->tableView->hideColumn(0);
 
+    ui->tableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(7, QHeaderView::Stretch);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(9, QHeaderView::ResizeToContents);
+
+    loadTasks_active();
+    modelTasks->setHeaderData(1, Qt::Horizontal, "Выполнение");
+    modelTasks->setHeaderData(2, Qt::Horizontal, "Название");
+    modelTasks->setHeaderData(3, Qt::Horizontal, "Дата заявки");
+    modelTasks->setHeaderData(4, Qt::Horizontal, "Срок");
+    modelTasks->setHeaderData(5, Qt::Horizontal, "Картинка");
+    modelTasks->setHeaderData(6, Qt::Horizontal, "Цена");
+    modelTasks->setHeaderData(7, Qt::Horizontal, "Инфо");
+    modelTasks->setHeaderData(8, Qt::Horizontal, "id Мастера");
+    modelTasks->setHeaderData(9, Qt::Horizontal, "Контакты");
+    ui->tableView_3->hideColumn(0);
+    ui->tableView_3->hideColumn(1);
+    ui->tableView_3->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    ui->tableView_3->horizontalHeader()->setSectionResizeMode(7, QHeaderView::Stretch);
+
     UpdateWorkers();
+
     modelTasks->select();
+
 }
 void MainWindow::on_action_2_triggered(){
     SetToEdit();
@@ -231,8 +249,8 @@ void MainWindow::on_pushButton_7_clicked(){
         QMessageBox::information(this, "Ошибка", "Неправильный формат Времени заявки [hh:mm dd-MM-yyyy] \nБудет вставлено сегодня");
         rec.setValue("DateBegin",QDateTime::currentDateTime().toString("hh:mm dd-MM-yyyy"));
     }
-    QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy");
-    if(dateTime.isValid()) rec.setValue("DateBegin",ui->lineEdit_3->text());
+    QDateTime dateTime2 = QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy");
+    if(dateTime2.isValid()) rec.setValue("DateEnd",ui->lineEdit_3->text());
     else {
         QMessageBox::information(this, "Ошибка", "Неправильный формат Срок сдачи [hh:mm dd-MM-yyyy] \nБудет вставлено завтра");
         QDateTime chk = QDateTime::currentDateTime().addDays(1);
@@ -244,6 +262,13 @@ void MainWindow::on_pushButton_7_clicked(){
         QVariant dfs = ui->lineEdit_3->text(); //endf
         rec.setValue("DateBegin",dfs);
         rec.setValue("DateEnd",ds);
+        ui->lineEdit_2->setText(dfs.toString());
+        ui->lineEdit_3->setText(ds.toString());
+    }
+
+    if (ui->comboBox->currentText()!=""){
+        //qDebug() <<"WorkerKey= "<< ui->comboBox->currentText() << "getworker = "<< GetWorker(ui->comboBox->currentText());
+        rec.setValue("WorkerKey",GetWorker(ui->comboBox->currentText()));
     }
 
     if (ui->checkBox->isChecked()) rec.setValue("Comp","1");
@@ -254,8 +279,10 @@ void MainWindow::on_pushButton_7_clicked(){
     rec.setValue("Name",ui->lineEdit->text());
     rec.setValue("Info",ui->plainTextEdit_2->toPlainText());
     rec.setValue("Сontacts",ui->plainTextEdit->toPlainText());
+    rec.setValue("Price",ui->lineEdit_4->text());
 
     modelTasks->setRecord(ui->tableView->currentIndex().row(),rec);
+
     if (!modelTasks->submitAll()) {
         qDebug() << modelTasks->lastError().text();
     }
@@ -309,6 +336,7 @@ void MainWindow::on_action_4_triggered(){
 void MainWindow::on_pushButton_9_clicked(){
     QString str;
     int and_c = 0;
+    qDebug() <<"Filter active ";
 
     if (ui->lineEdit_5->text()!="") {
         if (and_c!=0) {
@@ -368,6 +396,8 @@ void MainWindow::on_pushButton_9_clicked(){
     ui->lineEdit_7->setText(str);
     modelTasks->setFilter(str);
     modelTasks->select();
+    ui->tableView->setModel(modelTasks);
+
 }
 
 
