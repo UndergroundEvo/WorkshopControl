@@ -5,11 +5,11 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow){
     ui->setupUi(this);
     ui->dockWidget->setVisible(false);
-
-    sqllite3.setDatabaseName("D:\\Qt\\WorkshopControlpro\\WorkshopControlpro\\mydatabase.sqlite");
+    //загрузка базы
+    sqllite3.setDatabaseName("D:\\Documents\\mydatabase.sqlite");
     if (!sqllite3.open()) QMessageBox::information(this, "База", "База не подключилась");
     else QMessageBox::information(this, "База", "База работает");
-
+    //загрузка таблиц
     modelTasks = new QSqlTableModel(this, sqllite3);
     modelTasks->setTable("Tasks");
     modelTasks->setEditStrategy(QSqlTableModel::OnFieldChange);
@@ -20,19 +20,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     ui->label->setText(dateToday.toString("dd MMMM yyyy"));
     QTimer *timer = new QTimer(this);
     connect(timer, SIGNAL(timeout()),this,SLOT(showTime()));
-    //connect(this, SIGNAL(sendModel(QSqlTableModel*)),, SLOT(receiveModel(QSqlTableModel*)));
-
+    // запуск таймера по дате время
     timer->start();
     on_action_triggered();
-    //modelTasks->setEditStrategy(QSqlTableModel::OnFieldChange);
-
-
 }
+//получение модели workers
 QSqlTableModel* MainWindow::getModelWorkers(){
     return modelWorkers;
 }
-
-
+//обновление сотрадников
 void MainWindow::UpdateWorkers(){
     int i = modelWorkers->rowCount();
     ui->comboBox->clear();
@@ -44,20 +40,14 @@ void MainWindow::UpdateWorkers(){
     ui->comboBox->addItem("");
     ui->comboBox_3->addItem("");
 }
+//ltcnhernjhd
 MainWindow::~MainWindow(){
     delete ui;
 }
 void MainWindow::SetToEdit(){
-    /*modelTasks = new QSqlTableModel(this, sqllite3);
-    modelTasks->setTable("Tasks");
-    modelTasks->select();*/
-    //int selectedRow = ui->tableView->currentIndex().row();
-
-    //on_pushButton_8_clicked();
-    //on_pushButton_9_clicked();
-
     int selectedRow = ui->tableView->currentIndex().row();
     qDebug() << selectedRow;
+    //заполняем пустыми
     if (selectedRow < 0){
         ui->lineEdit->setText(" ");
         ui->lineEdit_2->setText(" ");
@@ -67,28 +57,11 @@ void MainWindow::SetToEdit(){
         ui->plainTextEdit_2->setPlainText(" ");
         ui->lineEdit_4->setText(" ");
     }
+    //заполняем панель слева данными
     else {
         ui->lineEdit->setText(modelTasks->record(selectedRow).value("Name").toString());
-        //QDateTime start_date, end_date;
-        //start_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateBegin").toInt());
-        /*
-        if (!modelTasks->record(selectedRow).value("DateEnd").isNull()){
-            start_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateBegin").toInt());
-            ui->lineEdit_2->setText(start_date.toString("hh:mm dd-MM-yyyy"));
-        }
-        else ui->lineEdit_2->setText(" ");
-
-        if (!modelTasks->record(selectedRow).value("DateEnd").isNull()) {
-            end_date.setSecsSinceEpoch(modelTasks->record(selectedRow).value("DateEnd").toInt());
-            ui->lineEdit_3->setText(end_date.toString("hh:mm dd-MM-yyyy"));
-        }
-        else ui->lineEdit_3->setText(" ");*/
-
         ui->lineEdit_2->setText(modelTasks->record(selectedRow).value("DateBegin").toString());
         ui->lineEdit_3->setText(modelTasks->record(selectedRow).value("DateEnd").toString());
-
-        //qDebug() << "comp= "<<modelTasks->record(selectedRow).value("Comp").toString();
-
         if (modelTasks->record(selectedRow).value("Comp").toString()=="1") ui->checkBox->setChecked(true);
         else ui->checkBox->setChecked(false);
 
@@ -96,47 +69,40 @@ void MainWindow::SetToEdit(){
         ui->plainTextEdit_2->setPlainText(modelTasks->record(selectedRow).value("Info").toString());
         ui->lineEdit_4->setText(modelTasks->record(selectedRow).value("Price").toString());
 
-        //qDebug() << "worker= "<< modelTasks->record(selectedRow).value("WorkerKey").toInt();
         if (modelTasks->record(selectedRow).value("WorkerKey").toInt()!=0)
             ui->comboBox->setCurrentText(GetWorker(modelTasks->record(selectedRow).value("WorkerKey").toInt()-1));
         else ui->comboBox->setCurrentText(" ");
 
-
-        //QPixmap img = (QString(":images/imgs/")+modelTasks->record(selectedRow).value("IMG").toString());
         QPixmap img = (modelTasks->record(selectedRow).value("IMG").toString());
 
         ui->label_11->setPixmap(img);
     }
 }
+//получение имени сотрудника по ключу
 QString MainWindow::GetWorker(int i){
     return modelWorkers->record(i).value("Name").toString();
 }
+//получение id сотрудника по имени
 QString MainWindow::GetWorker(QString string){
     modelWorkers->setFilter("Name ='"+string+"'");
     modelWorkers->select();
     QString i = modelWorkers->record(0).value("Key").toString();
     return i;
 }
-
+//обновление табл. сотрудники
 void MainWindow::loadWorkers(){
-    //QSqlTableModel *modelWorkers;
-    // modelWorkers = new QSqlTableModel(this, sqllite3);
-    // modelWorkers->setTable("Workers");
     modelWorkers->select();
     ui->tableView_2->setModel(modelWorkers);
 }
+//загрузка таблицы задачи
 void MainWindow::loadTasks(){
-    // modelTasks = new QSqlTableModel(this, sqllite3);
-    // modelTasks->setTable("Tasks");
     modelTasks->select();
     ui->tableView->setModel(modelTasks);
 }
+//загрузка таблицы с активными задачами
 void MainWindow::loadTasks_active(){
     modelTasks = new QSqlTableModel(this, sqllite3);
     modelTasks->setTable("Tasks");
-    //qDebug() << "check today: " << QString("DateEnd LIKE '%" + QDate::currentDate().toString("dd-MM-yyyy") + "%'");
-    //modelTasks->setFilter(QString("DateEnd= ")+QDateTime::currentDateTime().toString("hh:mm dd-MM-yyyy"));
-
     modelTasks->setFilter(QString("DateEnd LIKE '%" + QDate::currentDate().toString("dd-MM-yyyy") + "%'"));
     modelTasks->select();
 
@@ -147,18 +113,19 @@ void MainWindow::loadTasks_active(){
     modelTasks->select();
     int ids = modelTasks->rowCount();
     ui->label_10->setText(QString::number(ids));
-
     ui->tableView_3->setModel(modelTasks);
 }
-
+//показ времени
 void MainWindow::showTime(){
     QTime time = QTime::currentTime();
     ui->label_2->setText(time.toString("hh : mm : ss"));
 }
+//вставка
 void MainWindow::on_pushButton_clicked(){
     qDebug() << "Вставка строки" ;
     modelTasks->insertRows(modelTasks->rowCount(),1);
 }
+//удаление
 void MainWindow::on_pushButton_3_clicked(){
     int selectedRow = ui->tableView->currentIndex().row();
     if (selectedRow >= 0){
@@ -166,12 +133,11 @@ void MainWindow::on_pushButton_3_clicked(){
     }
     else qDebug() << "нет выделенной строки";
 }
+//загрузка и обновление таблиц с прем. столбцов и удаление лишних
 void MainWindow::on_action_triggered(){
     loadWorkers();
     modelWorkers->setHeaderData(1, Qt::Horizontal, "id Мастера");
     modelWorkers->setHeaderData(2, Qt::Horizontal, "ФИО");
-    //ui->tableView_2->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-
 
     modelTasks->setFilter("");
     loadTasks();
@@ -208,14 +174,16 @@ void MainWindow::on_action_triggered(){
     UpdateWorkers();
 
     modelTasks->select();
-
 }
+//обновление таблицы
 void MainWindow::on_action_2_triggered(){
     SetToEdit();
 }
+//обновление таблицы
 void MainWindow::on_tableView_clicked(const QModelIndex &index){
     SetToEdit();
 }
+//загрузка изображения
 void MainWindow::on_pushButton_4_clicked(){
     QFileDialog dialog(this, "Выберите изображение");
     dialog.setFileMode(QFileDialog::ExistingFile);
@@ -236,19 +204,20 @@ void MainWindow::on_pushButton_4_clicked(){
         qDebug() << modelTasks->lastError().text();
     }
 }
+//заполение
 void MainWindow::on_pushButton_7_clicked(){
     qDebug() <<"cur ROW= "<< ui->tableView->currentIndex().row();
     qDebug() <<"else= "<< ui->lineEdit->text();
-    //modelTasks->record(ui->tableView->currentIndex().row()).value("Name").setValue(ui->lineEdit->text());
 
     QSqlRecord rec = modelTasks->record(ui->tableView->currentIndex().row());
-
+    //дата начала
     QDateTime dateTime = QDateTime::fromString(ui->lineEdit_2->text(), "hh:mm dd-MM-yyyy");
     if(dateTime.isValid()) rec.setValue("DateBegin",ui->lineEdit_2->text());
     else {
         QMessageBox::information(this, "Ошибка", "Неправильный формат Времени заявки [hh:mm dd-MM-yyyy] \nБудет вставлено сегодня");
         rec.setValue("DateBegin",QDateTime::currentDateTime().toString("hh:mm dd-MM-yyyy"));
     }
+    //дата окончания
     QDateTime dateTime2 = QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy");
     if(dateTime2.isValid()) rec.setValue("DateEnd",ui->lineEdit_3->text());
     else {
@@ -256,6 +225,7 @@ void MainWindow::on_pushButton_7_clicked(){
         QDateTime chk = QDateTime::currentDateTime().addDays(1);
         rec.setValue("DateEnd",chk.toString("hh:mm dd-MM-yyyy"));
     }
+    //проверка на опережение
     if (QDateTime::fromString(ui->lineEdit_2->text(),"hh:mm dd-MM-yyyy")>QDateTime::fromString(ui->lineEdit_3->text(), "hh:mm dd-MM-yyyy")){
         QMessageBox::information(this, "Ошибка", "Дата сдачи стоит раньше даты времени заявки");
         QVariant ds = ui->lineEdit_2->text(); //begin
@@ -267,15 +237,12 @@ void MainWindow::on_pushButton_7_clicked(){
     }
 
     if (ui->comboBox->currentText()!=""){
-        //qDebug() <<"WorkerKey= "<< ui->comboBox->currentText() << "getworker = "<< GetWorker(ui->comboBox->currentText());
         rec.setValue("WorkerKey",GetWorker(ui->comboBox->currentText()));
     }
 
     if (ui->checkBox->isChecked()) rec.setValue("Comp","1");
     else rec.setValue("Comp","0");
-
-    //qDebug() <<"pixmap= "<< modelTasks->record(ui->tableView->currentIndex().row()).value("IMG").toString();
-
+    //вставка записей
     rec.setValue("Name",ui->lineEdit->text());
     rec.setValue("Info",ui->plainTextEdit_2->toPlainText());
     rec.setValue("Сontacts",ui->plainTextEdit->toPlainText());
@@ -287,27 +254,20 @@ void MainWindow::on_pushButton_7_clicked(){
         qDebug() << modelTasks->lastError().text();
     }
 }
-
+//вставка строки в сотрудники
 void MainWindow::on_pushButton_6_clicked(){
     qDebug() << "Вставка строки" ;
     modelWorkers->insertRows(modelWorkers->rowCount(),1);
 }
+//удаление строки
 void MainWindow::on_pushButton_2_clicked(){
-    /*if (!query.exec("SELECT * FROM Workers")){
-        qDebug() << query.lastError().databaseText();
-        qDebug() << query.lastError().driverText();
-    }
-    else {
-        while(query.next()){
-            qDebug() << query.record();
-        }
-    }*/
     int selectedRow = ui->tableView_2->currentIndex().row();
     if (selectedRow >= 0){
         qDebug() << "удал. строку" << modelWorkers->removeRows(selectedRow,1);
     }
     else qDebug() << "нет выделенной строки";
 }
+//установка пути до базы
 void MainWindow::on_action_3_triggered(){
     QFileDialog dialog(this, "Выберите путь до базы");
     dialog.setFileMode(QFileDialog::ExistingFile);
@@ -317,6 +277,7 @@ void MainWindow::on_action_3_triggered(){
         sqllite3.setDatabaseName(f2ilename);
     }
 }
+//запись картинки в базу
 void MainWindow::on_pushButton_5_clicked(){
     modelTasks->record(ui->tableView->currentIndex().row()).setValue("IMG",filename);
 
@@ -328,16 +289,16 @@ void MainWindow::on_pushButton_5_clicked(){
         qDebug() << modelTasks->lastError().text();
     }
 }
+//показать фильтр
 void MainWindow::on_action_4_triggered(){
     ui->dockWidget->setVisible(true);
 }
-
-
+//фильтр
 void MainWindow::on_pushButton_9_clicked(){
     QString str;
     int and_c = 0;
     qDebug() <<"Filter active ";
-
+    //счетчик and
     if (ui->lineEdit_5->text()!="") {
         if (and_c!=0) {
             str+=" AND ";
@@ -346,7 +307,7 @@ void MainWindow::on_pushButton_9_clicked(){
         str+="Name LIKE '"+ui->lineEdit_5->text()+"%'";
         and_c++;
     }
-
+    //дата начала
     if (ui->lineEdit_6->text()!="00:00 01-01-2000"){
         if (QDateTime::fromString(ui->lineEdit_6->text(),"hh:mm dd-MM-yyyy").isValid()){
             if (and_c!=0) {
@@ -360,7 +321,7 @@ void MainWindow::on_pushButton_9_clicked(){
             QMessageBox::information(this, "Ошибка", "Неправильный формат Времени заявки [hh:mm dd-MM-yyyy]");
         }
     }
-
+    //дата конца
     if (ui->lineEdit_9->text()!="00:00 01-01-2000"){
         if (QDateTime::fromString(ui->lineEdit_9->text(),"hh:mm dd-MM-yyyy").isValid()){
             if (and_c!=0) {
@@ -374,7 +335,7 @@ void MainWindow::on_pushButton_9_clicked(){
             QMessageBox::information(this, "Ошибка", "Неправильный формат Времени заявки [hh:mm dd-MM-yyyy]");
         }
     }
-
+    //сотрудник
     if (ui->comboBox_3->currentText()!=""){
         if (and_c!=0) {
             str+=" AND ";
@@ -384,7 +345,7 @@ void MainWindow::on_pushButton_9_clicked(){
         str+="WorkerKey LIKE "+GetWorker(ui->comboBox_3->currentText())+"";
         and_c++;
     }
-
+    //цена
     if (ui->lineEdit_8->text()!="") {
         if (and_c!=0) {
             str+=" AND ";
@@ -400,18 +361,16 @@ void MainWindow::on_pushButton_9_clicked(){
 
 }
 
-
+//очистка фильтра
 void MainWindow::on_pushButton_8_clicked(){
     ui->lineEdit_5->clear();
     ui->lineEdit_8->clear();
     ui->comboBox_3->setCurrentText("");
     ui->lineEdit_9->setText("00:00 01-01-2000");
     ui->lineEdit_6->setText("00:00 01-01-2000");
-    //ui->dateTimeEdit->setDateTime(QDateTime::fromString("hh:mm 01-01-2000"));
-    //ui->dateTimeEdit_2->clear();
 }
 
-
+//обновление таблицы по нажатию на вкладку
 void MainWindow::on_tabWidget_tabBarClicked(int index){
     on_action_triggered();
 }
